@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Engagers — X Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --neon-blue: #1d9bf0;
+            --neon-purple: #8b5cf6;
+            --neon-pink: #ec4899;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #e2e8f0;
+        }
+        .font-display { font-family: 'Space Grotesk', sans-serif; }
+
+        /* Animated background */
+        .bg-mesh {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(29, 155, 240, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.08) 0%, transparent 60%);
+            animation: meshPulse 8s ease-in-out infinite alternate;
+        }
+        @keyframes meshPulse {
+            0% { opacity: 0.6; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+        }
+
+        /* Glass card */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Input glow */
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.3), 0 0 30px rgba(29, 155, 240, 0.1);
+        }
+
+        /* Rank badges */
+        .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
+        .rank-2 { background: linear-gradient(135deg, #e2e8f0, #94a3b8); color: #000; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #b45309); color: #fff; }
+        .rank-other { background: rgba(255,255,255,0.08); color: #94a3b8; }
+
+        /* Card animations */
+        .engager-card {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+            animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes cardIn {
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Shimmer effect */
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* Share card */
+        .share-card {
+            background: linear-gradient(145deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            border: 2px solid rgba(29, 155, 240, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 60px rgba(29,155,240,0.1);
+        }
+
+        /* Glow button */
+        .btn-glow {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .btn-glow::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
+            border-radius: inherit;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-glow:hover::before { opacity: 1; }
+        .btn-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(29, 155, 240, 0.3);
+        }
+
+        /* Particle canvas */
+        #particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Confetti */
+        .confetti-piece {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: -10px;
+            z-index: 9999;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+        }
+        .tooltip::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            padding: 6px 12px;
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s;
+        }
+        .tooltip:hover::after { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+        /* Loading spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(29, 155, 240, 0.2);
+            border-top-color: var(--neon-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Pulse ring */
+        .pulse-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid var(--neon-blue);
+            animation: pulseRing 2s ease-out infinite;
+        }
+        @keyframes pulseRing {
+            0% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        /* Number counter animation */
+        .counter {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Hover lift */
+        .hover-lift {
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        /* Avatar ring */
+        .avatar-ring {
+            position: relative;
+        }
+        .avatar-ring::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            z-index: -1;
+        }
+
+        /* Modal overlay */
+        .modal-overlay {
+            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.7);
+        }
+
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, #1d9bf0, #8b5cf6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Stats bar animation */
+        .stats-bar {
+            transform-origin: left;
+            animation: barGrow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes barGrow {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
+        }
+
+        /* Tweet button */
+        .tweet-btn {
+            background: linear-gradient(135deg, #1d9bf0, #0ea5e9);
+            transition: all 0.3s;
+        }
+        .tweet-btn:hover {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(29, 155, 240, 0.4);
+        }
+
+        /* Floating animation */
+        .float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Hide scrollbar for share card */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div class="bg-mesh"></div>
+    <div class="bg-grid"></div>
+    <canvas id="particles"></canvas>
+
+    <!-- Main Container -->
+    <div class="relative z-10 min-h-screen flex flex-col items-center px-4 py-8">
+
+        <!-- Header -->
+        <header class="text-center mb-12 float">
+            <div class="inline-flex items-center gap-3 mb-4 px-4 py-2 rounded-full glass">
+                <i class="fab fa-x-twitter text-xl" style="color: var(--neon-blue);"></i>
+                <span class="text-sm font-medium text-slate-300">Engagement Leaderboard</span>
+            </div>
+            <h1 class="font-display text-5xl md:text-7xl font-bold mb-4 tracking-tight">
+                <span class="gradient-text">Top Engagers</span>
+            </h1>
+            <p class="text-slate-400 text-lg max-w-md mx-auto">
+                Discover who interacts with your posts the most. Enter any X username to reveal their top fans.
+            </p>
+        </header>
+
+        <!-- Input Section -->
+        <div id="inputSection" class="w-full max-w-lg mb-8">
+            <div class="glass rounded-2xl p-2 flex items-center gap-2">
+                <div class="relative flex-1">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">@</span>
+                    <input 
+                        type="text" 
+                        id="usernameInput" 
+                        placeholder="Enter X username (without @)"
+                        class="w-full bg-transparent border-0 outline-none text-white placeholder-slate-500 pl-10 pr-4 py-4 text-lg input-glow rounded-xl transition-all"
+                        autocomplete="off"
+                        onkeypress="if(event.key==='Enter') fetchEngagers()"
+                    >
+                </div>
+                <button 
+                    onclick="fetchEngagers()"
+                    id="searchBtn"
+                    class="btn-glow bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-2 transition-all"
+                >
+                    <span id="btnText">Analyze</span>
+                    <i class="fas fa-arrow-right" id="btnIcon"></i>
+                </button>
+            </div>
+            <p id="errorMsg" class="text-red-400 text-sm mt-3 text-center hidden"></p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden flex-col items-center gap-6 py-16">
+            <div class="relative">
+                <div class="spinner"></div>
+                <div class="pulse-ring absolute inset-0"></div>
+            </div>
+            <div class="text-center">
+                <p class="text-xl font-semibold text-white mb-2">Analyzing engagement...</p>
+                <p class="text-slate-400 text-sm" id="loadingText">Fetching recent posts</p>
+            </div>
+            <div class="w-64 h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full shimmer" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden w-full max-w-4xl">
+
+            <!-- Profile Header -->
+            <div class="glass rounded-3xl p-8 mb-8 text-center relative overflow-hidden">
+                <div class="absolute inset-0 opacity-20">
+                    <div class="absolute top-0 left-1/4 w-32 h-32 bg-blue-500 rounded-full blur-3xl"></div>
+                    <div class="absolute bottom-0 right-1/4 w-32 h-32 bg-purple-500 rounded-full blur-3xl"></div>
+                </div>
+                <div class="relative z-10">
+                    <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-1">
+                        <img id="profileImg" src="" alt="" class="w-full h-full rounded-full object-cover bg-slate-900">
+                    </div>
+                    <h2 id="profileName" class="font-display text-3xl font-bold text-white mb-1"></h2>
+                    <p id="profileHandle" class="text-slate-400 text-lg mb-4"></p>
+                    <div class="flex justify-center gap-8 text-sm">
+                        <div class="text-center">
+                            <div id="totalPosts" class="text-2xl font-bold text-white counter">0</div>
+                            <div class="text-slate-500">Posts Analyzed</div>
+                        </div>
+                        <div class="text-center">
+                            <div id="totalEngagers" class="text-2xl font-bold text-white counter">0</div>
+                            <div class="text-slate-500">Unique Engagers</div>
+                        </div>
+                        <div class="text-center">
+                            <div id="totalInteractions" class="text-2xl font-bold gradient-text counter">0</div>
+                            <div class="text-slate-500">Total Interactions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top 3 Podium -->
+            <div id="podiumSection" class="flex justify-center items-end gap-4 mb-10 px-4">
+                <!-- Filled by JS -->
+            </div>
+
+            <!-- Leaderboard List -->
+            <div id="leaderboardList" class="space-y-3 mb-10">
+                <!-- Filled by JS -->
+            </div>
+
+            <!-- Share Section -->
+            <div class="glass rounded-3xl p-8 text-center">
+                <h3 class="font-display text-2xl font-bold text-white mb-2">Share Your Top Fans</h3>
+                <p class="text-slate-400 mb-6">Generate a beautiful card and post it on X</p>
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button onclick="generateShareCard()" class="tweet-btn text-white px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-3">
+                        <i class="fab fa-x-twitter text-xl"></i>
+                        Generate Share Card
+                    </button>
+                    <button onclick="resetApp()" class="glass hover:bg-white/5 text-white px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-3 transition-all">
+                        <i class="fas fa-redo"></i>
+                        Analyze Another
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Share Card Modal -->
+        <div id="shareModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+            <div class="modal-overlay absolute inset-0" onclick="closeShareModal()"></div>
+            <div class="relative z-10 max-w-lg w-full">
+                <div class="glass rounded-3xl p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-display text-xl font-bold text-white">Your Share Card</h3>
+                        <button onclick="closeShareModal()" class="text-slate-400 hover:text-white transition-colors">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- The Card -->
+                    <div id="shareCardCanvas" class="share-card rounded-2xl p-8 mb-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
+                        <div class="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
+
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-3 mb-6">
+                                <i class="fab fa-x-twitter text-2xl" style="color: var(--neon-blue);"></i>
+                                <span class="text-slate-400 text-sm font-medium">Engagement Leaderboard</span>
+                            </div>
+
+                            <div class="text-center mb-8">
+                                <p class="text-slate-400 text-sm mb-2">Top Engagers for</p>
+                                <h4 id="shareUsername" class="font-display text-3xl font-bold text-white"></h4>
+                            </div>
+
+                            <div id="shareTop3" class="space-y-4 mb-8">
+                                <!-- Filled by JS -->
+                            </div>
+
+                            <div class="text-center pt-6 border-t border-white/10">
+                                <p class="text-slate-500 text-xs">Generated with Top Engagers</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button onclick="downloadCard()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all">
+                            <i class="fas fa-download"></i>
+                            Download
+                        </button>
+                        <button onclick="postToX()" class="flex-1 tweet-btn text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2">
+                            <i class="fab fa-x-twitter"></i>
+                            Post to X
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-auto pt-16 pb-8 text-center text-slate-600 text-sm">
+            <p>Built with vibes. Not affiliated with X Corp.</p>
+        </footer>
+    </div>
+
+    <script>
+        // ===== CONFIG =====
+        const BEARER_TOKEN = 'AAAAAAAAAAAAAAAAAAAAAJpE9AEAAAAAsaHas5i40ue%2BzQvjkUB%2BN%2BlAJxA%3Dd8S1OXlqACoi9lMk3A0vOHcWnLqGQ1TjaPClf3WVPXcg2XLqMR';
+        const CONSUMER_KEY = 'w9B9efLjfWwJCHk7AocNENjTt';
+        const CONSUMER_SECRET = 'FVB3B7cIGYK7v09K6ToU0fcl4EJVcg3UtNPeau6MK5oJ7fW9Mk';
+
+        let currentData = null;
+        let currentUsername = '';
+
+        // ===== PARTICLES =====
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.opacity = Math.random() * 0.5 + 0.1;
+            }
+            update() {
+                this.x += this.speedX;
+     
