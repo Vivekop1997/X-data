@@ -1,997 +1,470 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top Engagers — X Leaderboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        :root {
-            --neon-blue: #1d9bf0;
-            --neon-purple: #8b5cf6;
-            --neon-pink: #ec4899;
-            --glass-bg: rgba(15, 23, 42, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.08);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #0a0a0f;
-            min-height: 100vh;
-            overflow-x: hidden;
-            color: #e2e8f0;
-        }
-        .font-display { font-family: 'Space Grotesk', sans-serif; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SYS.AUTO // GRID PAINTER</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+  :root {
+    --purple: #9b59ff;
+    --purple-dim: #6b3bbf;
+    --purple-glow: #c084fc;
+    --bg: #0a0612;
+    --hud-text: #b88aff;
+    --hud-bright: #e0c8ff;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    background: var(--bg);
+    color: var(--hud-text);
+    font-family: 'Share Tech Mono', monospace;
+    height: 100%; overflow: hidden;
+    user-select: none; -webkit-user-select: none;
+    touch-action: none;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);
+    pointer-events:none; z-index:1000;
+  }
+  body::after {
+    content:''; position:fixed; inset:0;
+    background: radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,0.65) 100%);
+    pointer-events:none; z-index:999;
+  }
+  .app { display:flex; flex-direction:column; height:100dvh; height:100vh; }
 
-        /* Animated background */
-        .bg-mesh {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background: 
-                radial-gradient(ellipse at 20% 20%, rgba(29, 155, 240, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.08) 0%, transparent 60%);
-            animation: meshPulse 8s ease-in-out infinite alternate;
-        }
-        @keyframes meshPulse {
-            0% { opacity: 0.6; transform: scale(1); }
-            100% { opacity: 1; transform: scale(1.05); }
-        }
+  /* TOP HUD */
+  .hud-top {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:4px 10px; border-bottom:1px solid var(--purple-dim);
+    background:rgba(12,4,25,0.95); flex-shrink:0; gap:4px;
+  }
+  .hud-tl, .hud-tr {
+    display:flex; flex-direction:column; font-size:10px; line-height:1.45; min-width:78px;
+  }
+  .hud-tr { text-align:right; }
+  .hud-val { color:var(--hud-bright); }
+  .hud-tc { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .target-locked {
+    font-family:'VT323',monospace; font-size:clamp(12px,3.5vw,20px);
+    color:var(--purple-glow); letter-spacing:4px;
+    text-shadow:0 0 10px var(--purple); animation:pulse 2s ease-in-out infinite;
+    white-space:nowrap;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+  .ruler-wrap { position:relative; width:100%; max-width:280px; }
+  #ruler-canvas { display:block; width:100%; height:16px; }
+  .bearing-marker {
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:0; height:0;
+    border-left:4px solid transparent; border-right:4px solid transparent;
+    border-top:6px solid var(--purple-glow); filter:drop-shadow(0 0 3px var(--purple));
+  }
 
-        .bg-grid {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 60px 60px;
-            mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-        }
+  /* MIDDLE */
+  .middle { display:flex; flex:1; overflow:hidden; min-height:0; }
 
-        /* Glass card */
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-        }
+  /* CANVAS AREA */
+  .canvas-col { display:flex; flex-direction:column; flex:1; min-width:0; overflow:hidden; }
+  .canvas-wrap {
+    position:relative; flex:1; overflow:hidden;
+    cursor:crosshair; background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+  }
+  #canvas-box { position:relative; flex-shrink:0; }
+  #grid-canvas { display:block; }
+  .bracket {
+    position:absolute; width:20px; height:20px;
+    border-color:var(--purple-glow); border-style:solid; opacity:0.65; pointer-events:none;
+  }
+  .bracket.tl { top:6px; left:6px; border-width:2px 0 0 2px; }
+  .bracket.tr { top:6px; right:6px; border-width:2px 2px 0 0; }
+  .bracket.bl { bottom:6px; left:6px; border-width:0 0 2px 2px; }
+  .bracket.br { bottom:6px; right:6px; border-width:0 2px 2px 0; }
 
-        /* Input glow */
-        .input-glow:focus {
-            box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.3), 0 0 30px rgba(29, 155, 240, 0.1);
-        }
+  /* RIGHT PANEL */
+  .panel-right {
+    width:116px; flex-shrink:0;
+    display:flex; flex-direction:column;
+    border-left:1px solid var(--purple-dim);
+    background:rgba(12,4,25,0.93);
+    overflow-y:auto; overflow-x:hidden;
+    padding:7px 6px; gap:7px;
+  }
+  .panel-right::-webkit-scrollbar { width:0; }
+  .stat-row { display:flex; justify-content:space-between; font-size:10px; }
+  .stat-row .k { color:var(--hud-text); } .stat-row .v { color:var(--hud-bright); }
+  .divider { border:none; border-top:1px solid rgba(107,59,191,0.35); }
+  .sec-label { font-size:8px; letter-spacing:2px; color:rgba(155,89,255,0.5); text-transform:uppercase; margin-bottom:4px; }
+  .color-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; }
+  .swatch {
+    width:100%; aspect-ratio:1;
+    border:1px solid rgba(155,89,255,0.3); cursor:pointer;
+    transition:transform .1s, box-shadow .1s;
+  }
+  .swatch:hover { transform:scale(1.1); }
+  .swatch.active { border:2px solid var(--purple-glow); box-shadow:0 0 6px var(--purple); }
+  .size-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:3px; }
+  .size-btn {
+    background:rgba(100,50,200,0.15); border:1px solid var(--purple-dim);
+    color:var(--hud-text); font-family:'Share Tech Mono',monospace;
+    font-size:9px; padding:4px 0; cursor:pointer; text-align:center;
+    transition:background .1s, border-color .1s;
+  }
+  .size-btn:hover { background:rgba(100,50,200,0.3); border-color:var(--purple); }
+  .size-btn.active {
+    background:rgba(100,50,200,0.5); border-color:var(--purple-glow);
+    color:var(--hud-bright); box-shadow:0 0 5px rgba(107,59,191,0.5);
+  }
+  .tool-btn {
+    width:100%; background:rgba(100,50,200,0.15);
+    border:1px solid var(--purple-dim); color:var(--hud-text);
+    font-family:'Share Tech Mono',monospace;
+    font-size:9px; padding:5px 4px; cursor:pointer; text-align:left;
+    letter-spacing:1px; transition:all .1s; margin-bottom:3px;
+  }
+  .tool-btn:hover { background:rgba(100,50,200,0.3); border-color:var(--purple); color:var(--hud-bright); }
+  .tool-btn.active { background:rgba(100,50,200,0.45); border-color:var(--purple-glow); color:var(--hud-bright); box-shadow:0 0 6px rgba(107,59,191,0.5); }
+  .tool-btn.danger { border-color:rgba(255,80,120,0.4); color:rgba(255,150,180,0.8); }
+  .tool-btn.danger:hover { background:rgba(200,30,60,0.25); border-color:rgba(255,80,120,0.8); color:#ff96b4; }
 
-        /* Rank badges */
-        .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #000; }
-        .rank-2 { background: linear-gradient(135deg, #e2e8f0, #94a3b8); color: #000; }
-        .rank-3 { background: linear-gradient(135deg, #cd7f32, #b45309); color: #fff; }
-        .rank-other { background: rgba(255,255,255,0.08); color: #94a3b8; }
-
-        /* Card animations */
-        .engager-card {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-            animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes cardIn {
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        /* Shimmer effect */
-        .shimmer {
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-            background-size: 200% 100%;
-            animation: shimmer 2s infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
-
-        /* Share card */
-        .share-card {
-            background: linear-gradient(145deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-            border: 2px solid rgba(29, 155, 240, 0.3);
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 60px rgba(29,155,240,0.1);
-        }
-
-        /* Glow button */
-        .btn-glow {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        .btn-glow::before {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-pink));
-            border-radius: inherit;
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .btn-glow:hover::before { opacity: 1; }
-        .btn-glow:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(29, 155, 240, 0.3);
-        }
-
-        /* Particle canvas */
-        #particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0a0a0f; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        /* Confetti */
-        .confetti-piece {
-            position: fixed;
-            width: 10px;
-            height: 10px;
-            top: -10px;
-            z-index: 9999;
-            animation: confettiFall linear forwards;
-        }
-        @keyframes confettiFall {
-            to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-        }
-
-        /* Tooltip */
-        .tooltip {
-            position: relative;
-        }
-        .tooltip::after {
-            content: attr(data-tip);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%) translateY(-8px);
-            padding: 6px 12px;
-            background: #1e293b;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            font-size: 12px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.2s;
-        }
-        .tooltip:hover::after { opacity: 1; transform: translateX(-50%) translateY(-4px); }
-
-        /* Loading spinner */
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(29, 155, 240, 0.2);
-            border-top-color: var(--neon-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Pulse ring */
-        .pulse-ring {
-            position: absolute;
-            border-radius: 50%;
-            border: 2px solid var(--neon-blue);
-            animation: pulseRing 2s ease-out infinite;
-        }
-        @keyframes pulseRing {
-            0% { transform: scale(1); opacity: 0.5; }
-            100% { transform: scale(2); opacity: 0; }
-        }
-
-        /* Number counter animation */
-        .counter {
-            font-variant-numeric: tabular-nums;
-        }
-
-        /* Hover lift */
-        .hover-lift {
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
-        }
-        .hover-lift:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        }
-
-        /* Avatar ring */
-        .avatar-ring {
-            position: relative;
-        }
-        .avatar-ring::after {
-            content: '';
-            position: absolute;
-            inset: -3px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
-            z-index: -1;
-        }
-
-        /* Modal overlay */
-        .modal-overlay {
-            backdrop-filter: blur(10px);
-            background: rgba(0,0,0,0.7);
-        }
-
-        /* Gradient text */
-        .gradient-text {
-            background: linear-gradient(135deg, #1d9bf0, #8b5cf6, #ec4899);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        /* Stats bar animation */
-        .stats-bar {
-            transform-origin: left;
-            animation: barGrow 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes barGrow {
-            from { transform: scaleX(0); }
-            to { transform: scaleX(1); }
-        }
-
-        /* Tweet button */
-        .tweet-btn {
-            background: linear-gradient(135deg, #1d9bf0, #0ea5e9);
-            transition: all 0.3s;
-        }
-        .tweet-btn:hover {
-            background: linear-gradient(135deg, #0ea5e9, #0284c7);
-            transform: translateY(-1px);
-            box-shadow: 0 8px 25px rgba(29, 155, 240, 0.4);
-        }
-
-        /* Floating animation */
-        .float {
-            animation: float 6s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        /* Hide scrollbar for share card */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Log panel */
-        .log-panel {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            line-height: 1.6;
-        }
-        .log-success { color: #4ade80; }
-        .log-error { color: #f87171; }
-        .log-info { color: #60a5fa; }
-        .log-warn { color: #fbbf24; }
-
-        /* Toggle switch */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #1d9bf0;
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #1d9bf0;
-        }
-    </style>
+  /* BOTTOM BAR */
+  .hud-bottom {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:3px 10px; border-top:1px solid var(--purple-dim);
+    background:rgba(12,4,25,0.95); font-size:9px; flex-shrink:0; gap:6px;
+  }
+  .status-dot {
+    display:inline-block; width:6px; height:6px;
+    background:var(--purple-glow); margin-right:4px;
+    box-shadow:0 0 5px var(--purple); animation:blink 1.4s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+  .linked-box {
+    border:1px solid var(--purple); padding:1px 5px; font-size:9px;
+    background:rgba(100,50,200,0.25); box-shadow:0 0 6px rgba(107,59,191,0.4);
+    letter-spacing:2px; white-space:nowrap;
+  }
+</style>
 </head>
 <body>
-    <div class="bg-mesh"></div>
-    <div class="bg-grid"></div>
-    <canvas id="particles"></canvas>
+<div class="app">
 
-    <!-- Main Container -->
-    <div class="relative z-10 min-h-screen flex flex-col items-center px-4 py-8">
+  <div class="hud-top">
+    <div class="hud-tl">
+      <div>SYS. <span class="hud-val">AUTO</span></div>
+      <div>MODE <span class="hud-val">PAINT</span></div>
+      <div>LCK <span class="hud-val">ON</span></div>
+      <div>AREA: <span class="hud-val" id="stat-area">00</span></div>
+    </div>
+    <div class="hud-tc">
+      <div class="target-locked">◇ TARGET LOCKED ◇</div>
+      <div class="ruler-wrap">
+        <canvas id="ruler-canvas"></canvas>
+        <div class="bearing-marker"></div>
+      </div>
+    </div>
+    <div class="hud-tr">
+      <div>X: <span class="hud-val" id="stat-x">1427.35°</span></div>
+      <div>Y: <span class="hud-val" id="stat-y">3071.92°</span></div>
+      <div>SPD: <span class="hud-val">0.0</span></div>
+      <div>RNG: <span class="hud-val">7563m</span></div>
+      <div>ELV: <span class="hud-val">000m</span></div>
+    </div>
+  </div>
 
-        <!-- Header -->
-        <header class="text-center mb-12 float">
-            <div class="inline-flex items-center gap-3 mb-4 px-4 py-2 rounded-full glass">
-                <i class="fab fa-x-twitter text-xl" style="color: var(--neon-blue);"></i>
-                <span class="text-sm font-medium text-slate-300">Engagement Leaderboard</span>
-            </div>
-            <h1 class="font-display text-5xl md:text-7xl font-bold mb-4 tracking-tight">
-                <span class="gradient-text">Top Engagers</span>
-            </h1>
-            <p class="text-slate-400 text-lg max-w-md mx-auto">
-                Discover who interacts with your posts the most. Enter any X username to reveal their top fans.
-            </p>
-        </header>
-
-        <!-- Input Section -->
-        <div id="inputSection" class="w-full max-w-lg mb-8">
-            <div class="glass rounded-2xl p-2 flex items-center gap-2">
-                <div class="relative flex-1">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">@</span>
-                    <input 
-                        type="text" 
-                        id="usernameInput" 
-                        placeholder="Enter X username (without @)"
-                        class="w-full bg-transparent border-0 outline-none text-white placeholder-slate-500 pl-10 pr-4 py-4 text-lg input-glow rounded-xl transition-all"
-                        autocomplete="off"
-                        onkeypress="if(event.key==='Enter') fetchEngagers()"
-                    >
-                </div>
-                <button 
-                    onclick="fetchEngagers()"
-                    id="searchBtn"
-                    class="btn-glow bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-2 transition-all"
-                >
-                    <span id="btnText">Analyze</span>
-                    <i class="fas fa-arrow-right" id="btnIcon"></i>
-                </button>
-            </div>
-            <p id="errorMsg" class="text-red-400 text-sm mt-3 text-center hidden"></p>
-
-            <!-- API Debug Toggle -->
-            <div class="flex justify-center mt-4">
-                <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-500 hover:text-slate-300 transition-colors">
-                    <input type="checkbox" id="debugToggle" class="sr-only" onchange="toggleDebug()">
-                    <div class="w-10 h-5 bg-slate-700 rounded-full relative transition-colors" id="debugToggleBg">
-                        <div class="w-3 h-3 bg-white rounded-full absolute top-1 left-1 transition-transform" id="debugToggleDot"></div>
-                    </div>
-                    <span>Show API Debug Log</span>
-                </label>
-            </div>
+  <div class="middle">
+    <div class="canvas-col">
+      <div class="canvas-wrap" id="canvas-wrap">
+        <div id="canvas-box">
+          <canvas id="grid-canvas"></canvas>
+          <div class="bracket tl"></div>
+          <div class="bracket tr"></div>
+          <div class="bracket bl"></div>
+          <div class="bracket br"></div>
         </div>
-
-        <!-- Debug Panel -->
-        <div id="debugPanel" class="hidden w-full max-w-2xl mb-6 glass rounded-2xl p-4">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                    <i class="fas fa-terminal text-xs"></i>
-                    API Debug Log
-                </h3>
-                <button onclick="clearLogs()" class="text-xs text-slate-500 hover:text-slate-300">
-                    <i class="fas fa-trash"></i> Clear
-                </button>
-            </div>
-            <div id="debugLogs" class="log-panel bg-slate-950/50 rounded-xl p-4 max-h-64 overflow-y-auto space-y-1">
-                <div class="text-slate-500 italic">Waiting for API calls...</div>
-            </div>
-        </div>
-
-        <!-- Loading State -->
-        <div id="loadingState" class="hidden flex-col items-center gap-6 py-16">
-            <div class="relative">
-                <div class="spinner"></div>
-                <div class="pulse-ring absolute inset-0"></div>
-            </div>
-            <div class="text-center">
-                <p class="text-xl font-semibold text-white mb-2">Analyzing engagement...</p>
-                <p class="text-slate-400 text-sm" id="loadingText">Initializing API connection</p>
-            </div>
-            <div class="w-64 h-1 bg-slate-800 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full shimmer" style="width: 100%;"></div>
-            </div>
-        </div>
-
-        <!-- Results Section -->
-        <div id="resultsSection" class="hidden w-full max-w-4xl">
-
-            <!-- Profile Header -->
-            <div class="glass rounded-3xl p-8 mb-8 text-center relative overflow-hidden">
-                <div class="absolute inset-0 opacity-20">
-                    <div class="absolute top-0 left-1/4 w-32 h-32 bg-blue-500 rounded-full blur-3xl"></div>
-                    <div class="absolute bottom-0 right-1/4 w-32 h-32 bg-purple-500 rounded-full blur-3xl"></div>
-                </div>
-                <div class="relative z-10">
-                    <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-1">
-                        <img id="profileImg" src="" alt="" class="w-full h-full rounded-full object-cover bg-slate-900">
-                    </div>
-                    <h2 id="profileName" class="font-display text-3xl font-bold text-white mb-1"></h2>
-                    <p id="profileHandle" class="text-slate-400 text-lg mb-4"></p>
-                    <div class="flex justify-center gap-8 text-sm">
-                        <div class="text-center">
-                            <div id="totalPosts" class="text-2xl font-bold text-white counter">0</div>
-                            <div class="text-slate-500">Posts Analyzed</div>
-                        </div>
-                        <div class="text-center">
-                            <div id="totalEngagers" class="text-2xl font-bold text-white counter">0</div>
-                            <div class="text-slate-500">Unique Engagers</div>
-                        </div>
-                        <div class="text-center">
-                            <div id="totalInteractions" class="text-2xl font-bold gradient-text counter">0</div>
-                            <div class="text-slate-500">Total Interactions</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Top 3 Podium -->
-            <div id="podiumSection" class="flex justify-center items-end gap-4 mb-10 px-4">
-                <!-- Filled by JS -->
-            </div>
-
-            <!-- Leaderboard List -->
-            <div id="leaderboardList" class="space-y-3 mb-10">
-                <!-- Filled by JS -->
-            </div>
-
-            <!-- Share Section -->
-            <div class="glass rounded-3xl p-8 text-center">
-                <h3 class="font-display text-2xl font-bold text-white mb-2">Share Your Top Fans</h3>
-                <p class="text-slate-400 mb-6">Generate a beautiful card and post it on X</p>
-                <div class="flex flex-wrap justify-center gap-4">
-                    <button onclick="generateShareCard()" class="tweet-btn text-white px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-3">
-                        <i class="fab fa-x-twitter text-xl"></i>
-                        Generate Share Card
-                    </button>
-                    <button onclick="resetApp()" class="glass hover:bg-white/5 text-white px-8 py-4 rounded-xl font-semibold text-lg flex items-center gap-3 transition-all">
-                        <i class="fas fa-redo"></i>
-                        Analyze Another
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Share Card Modal -->
-        <div id="shareModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-            <div class="modal-overlay absolute inset-0" onclick="closeShareModal()"></div>
-            <div class="relative z-10 max-w-lg w-full">
-                <div class="glass rounded-3xl p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="font-display text-xl font-bold text-white">Your Share Card</h3>
-                        <button onclick="closeShareModal()" class="text-slate-400 hover:text-white transition-colors">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
-
-                    <!-- The Card -->
-                    <div id="shareCardCanvas" class="share-card rounded-2xl p-8 mb-6 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
-                        <div class="absolute bottom-0 left-0 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
-
-                        <div class="relative z-10">
-                            <div class="flex items-center gap-3 mb-6">
-                                <i class="fab fa-x-twitter text-2xl" style="color: var(--neon-blue);"></i>
-                                <span class="text-slate-400 text-sm font-medium">Engagement Leaderboard</span>
-                            </div>
-
-                            <div class="text-center mb-8">
-                                <p class="text-slate-400 text-sm mb-2">Top Engagers for</p>
-                                <h4 id="shareUsername" class="font-display text-3xl font-bold text-white"></h4>
-                            </div>
-
-                            <div id="shareTop3" class="space-y-4 mb-8">
-                                <!-- Filled by JS -->
-                            </div>
-
-                            <div class="text-center pt-6 border-t border-white/10">
-                                <p class="text-slate-500 text-xs">Generated with Top Engagers</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex gap-3">
-                        <button onclick="downloadCard()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all">
-                            <i class="fas fa-download"></i>
-                            Download
-                        </button>
-                        <button onclick="postToX()" class="flex-1 tweet-btn text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2">
-                            <i class="fab fa-x-twitter"></i>
-                            Post to X
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <footer class="mt-auto pt-16 pb-8 text-center text-slate-600 text-sm">
-            <p>Built with vibes. Not affiliated with X Corp.</p>
-        </footer>
+      </div>
     </div>
 
-    <script>
-        // ===== CONFIG =====
-        const BEARER_TOKEN = decodeURIComponent('AAAAAAAAAAAAAAAAAAAAAJpE9AEAAAAAsaHas5i40ue%2BzQvjkUB%2BN%2BlAJxA%3Dd8S1OXlqACoi9lMk3A0vOHcWnLqGQ1TjaPClf3WVPXcg2XLqMR');
-        const CONSUMER_KEY = 'w9B9efLjfWwJCHk7AocNENjTt';
-        const CONSUMER_SECRET = 'FVB3B7cIGYK7v09K6ToU0fcl4EJVcg3UtNPeau6MK5oJ7fW9Mk';
-
-        let currentData = null;
-        let currentUsername = '';
-        let debugMode = false;
-
-        // ===== DEBUG LOGGING =====
-        function log(message, type = 'info') {
-            const logs = document.getElementById('debugLogs');
-            const time = new Date().toLocaleTimeString();
-            const colorClass = type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : type === 'warn' ? 'log-warn' : 'log-info';
-            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warn' ? '⚠️' : 'ℹ️';
-
-            const entry = document.createElement('div');
-            entry.className = `${colorClass}`;
-            entry.innerHTML = `<span class="opacity-50">[${time}]</span> ${icon} ${message}`;
-
-            if (logs.children[0]?.classList.contains('italic')) {
-                logs.innerHTML = '';
-            }
-            logs.appendChild(entry);
-            logs.scrollTop = logs.scrollHeight;
-        }
-
-        function clearLogs() {
-            document.getElementById('debugLogs').innerHTML = '<div class="text-slate-500 italic">Waiting for API calls...</div>';
-        }
-
-        function toggleDebug() {
-            debugMode = !debugMode;
-            const panel = document.getElementById('debugPanel');
-            const bg = document.getElementById('debugToggleBg');
-            const dot = document.getElementById('debugToggleDot');
-
-            if (debugMode) {
-                panel.classList.remove('hidden');
-                bg.classList.add('bg-blue-500');
-                bg.classList.remove('bg-slate-700');
-                dot.style.transform = 'translateX(20px)';
-            } else {
-                panel.classList.add('hidden');
-                bg.classList.remove('bg-blue-500');
-                bg.classList.add('bg-slate-700');
-                dot.style.transform = 'translateX(0)';
-            }
-        }
-
-        // ===== PARTICLES =====
-        const canvas = document.getElementById('particles');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 2 + 0.5;
-                this.speedX = (Math.random() - 0.5) * 0.5;
-                this.speedY = (Math.random() - 0.5) * 0.5;
-                this.opacity = Math.random() * 0.5 + 0.1;
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.y > canvas.height) this.y = 0;
-            }
-            draw() {
-                ctx.fillStyle = `rgba(29, 155, 240, ${this.opacity})`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        for (let i = 0; i < 50; i++) particles.push(new Particle());
-
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animateParticles);
-        }
-        animateParticles();
-
-        // ===== CONFETTI =====
-        function fireConfetti() {
-            const colors = ['#1d9bf0', '#8b5cf6', '#ec4899', '#fbbf24', '#10b981'];
-            for (let i = 0; i < 50; i++) {
-                const el = document.createElement('div');
-                el.className = 'confetti-piece';
-                el.style.left = Math.random() * 100 + 'vw';
-                el.style.background = colors[Math.floor(Math.random() * colors.length)];
-                el.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-                el.style.width = Math.random() * 10 + 5 + 'px';
-                el.style.height = Math.random() * 10 + 5 + 'px';
-                el.style.animationDuration = Math.random() * 3 + 2 + 's';
-                el.style.animationDelay = Math.random() * 2 + 's';
-                document.body.appendChild(el);
-                setTimeout(() => el.remove(), 5000);
-            }
-        }
-
-        // ===== COUNTER ANIMATION =====
-        function animateCounter(el, target, duration = 1500) {
-            const start = 0;
-            const startTime = performance.now();
-            function update(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                el.textContent = Math.floor(start + (target - start) * easeOut).toLocaleString();
-                if (progress < 1) requestAnimationFrame(update);
-            }
-            requestAnimationFrame(update);
-        }
-
-        // ===== FETCH ENGAGERS =====
-        async function fetchEngagers() {
-            const username = document.getElementById('usernameInput').value.trim().replace(/^@/, '');
-            const errorMsg = document.getElementById('errorMsg');
-
-            if (!username) {
-                errorMsg.textContent = 'Please enter a username';
-                errorMsg.classList.remove('hidden');
-                return;
-            }
-
-            errorMsg.classList.add('hidden');
-            currentUsername = username;
-
-            if (debugMode) clearLogs();
-
-            // Show loading
-            document.getElementById('inputSection').classList.add('hidden');
-            document.getElementById('loadingState').classList.remove('hidden');
-            document.getElementById('loadingState').classList.add('flex');
-
-            const loadingTexts = [
-                'Connecting to X API...',
-                'Fetching user profile...',
-                'Retrieving recent posts...',
-                'Analyzing engagement data...',
-                'Ranking top engagers...',
-                'Finalizing results...'
-            ];
-            let textIdx = 0;
-            const textInterval = setInterval(() => {
-                textIdx = (textIdx + 1) % loadingTexts.length;
-                document.getElementById('loadingText').textContent = loadingTexts[textIdx];
-            }, 1200);
-
-            try {
-                log(`Starting analysis for @${username}`, 'info');
-                const data = await fetchFromXAPI(username);
-                currentData = data;
-
-                clearInterval(textInterval);
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('loadingState').classList.remove('flex');
-                document.getElementById('resultsSection').classList.remove('hidden');
-
-                renderResults(data);
-                fireConfetti();
-                log('Analysis complete!', 'success');
-
-            } catch (error) {
-                clearInterval(textInterval);
-                log(`API Error: ${error.message}`, 'error');
-                console.error('API Error:', error);
-
-                // Show error in UI
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('loadingState').classList.remove('flex');
-                document.getElementById('inputSection').classList.remove('hidden');
-
-                errorMsg.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${error.message}<br><span class="text-xs opacity-70">Enable debug log (toggle above) for details</span>`;
-                errorMsg.classList.remove('hidden');
-            }
-        }
-
-        // ===== X API FETCH =====
-        async function fetchFromXAPI(username) {
-            const API_BASE = 'https://api.x.com/2';
-
-            // Step 1: Get user ID from username
-            log(`Step 1: Looking up user ID for @${username}...`, 'info');
-            const userUrl = `${API_BASE}/users/by/username/${username}`;
-            log(`GET ${userUrl}`, 'info');
-
-            const userRes = await fetch(userUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${BEARER_TOKEN}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            log(`Response status: ${userRes.status} ${userRes.statusText}`, userRes.ok ? 'success' : 'error');
-
-            if (!userRes.ok) {
-                const errorText = await userRes.text();
-                log(`Error response: ${errorText}`, 'error');
-
-                if (userRes.status === 401) {
-                    throw new Error('Invalid Bearer Token. Please check your API credentials in the X Developer Console.');
-                } else if (userRes.status === 403) {
-                    throw new Error('Access forbidden. Your API tier may not have access to user lookup. Free tier is very limited.');
-                } else if (userRes.status === 429) {
-                    throw new Error('Rate limit exceeded. X API has strict limits (especially on free tier). Please wait 15 minutes and try again.');
-                } else if (userRes.status === 404) {
-                    throw new Error(`User @${username} not found on X.`);
-                } else {
-                    throw new Error(`API Error ${userRes.status}: ${userRes.statusText}. ${errorText}`);
-                }
-            }
-
-            const userData = await userRes.json();
-            log(`Found user: ${userData.data.name} (ID: ${userData.data.id})`, 'success');
-
-            const userId = userData.data.id;
-            const userName = userData.data.name;
-            const userHandle = userData.data.username;
-
-            // Step 2: Get recent tweets (max 50, excluding replies/retweets)
-            log(`Step 2: Fetching recent posts for ${userName}...`, 'info');
-            const tweetsUrl = `${API_BASE}/users/${userId}/tweets?max_results=50&tweet.fields=public_metrics,created_at&exclude=replies,retweets`;
-            log(`GET ${tweetsUrl}`, 'info');
-
-            const tweetsRes = await fetch(tweetsUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${BEARER_TOKEN}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            log(`Response status: ${tweetsRes.status} ${tweetsRes.statusText}`, tweetsRes.ok ? 'success' : 'error');
-
-            if (!tweetsRes.ok) {
-                const errorText = await tweetsRes.text();
-                log(`Error response: ${errorText}`, 'error');
-                throw new Error(`Failed to fetch tweets: ${tweetsRes.status} ${tweetsRes.statusText}`);
-            }
-
-            const tweetsData = await tweetsRes.json();
-            const tweets = tweetsData.data || [];
-            log(`Retrieved ${tweets.length} posts`, 'success');
-
-            if (tweets.length === 0) {
-                throw new Error('No recent posts found for this user. They may not have posted recently or their account is private.');
-            }
-
-            // Step 3: Get likers for each tweet
-            log(`Step 3: Fetching likers for ${tweets.length} posts...`, 'info');
-            const engagers = {};
-            let processedTweets = 0;
-
-            for (const tweet of tweets) {
-                try {
-                    const likersUrl = `${API_BASE}/tweets/${tweet.id}/liking_users?max_results=100&user.fields=public_metrics,profile_image_url,username,name`;
-                    log(`  Fetching likers for tweet ${tweet.id}...`, 'info');
-
-                    const likersRes = await fetch(likersUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${BEARER_TOKEN}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (likersRes.ok) {
-                        const likersData = await likersRes.json();
-                        const likers = likersData.data || [];
-                        log(`    ✓ Found ${likers.length} likers`, 'success');
-
-                        likers.forEach(user => {
-                            if (!engagers[user.id]) {
-                                engagers[user.id] = {
-                                    id: user.id,
-                                    name: user.name,
-                                    username: user.username,
-                                    avatar: user.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=1d9bf0&color=fff&size=200`,
-                                    likes: 0,
-                                    retweets: 0,
-                                    replies: 0,
-                                    totalScore: 0
-                                };
-                            }
-                            engagers[user.id].likes++;
-                            engagers[user.id].totalScore += 1;
-                        });
-                        processedTweets++;
-                    } else if (likersRes.status === 429) {
-                        log(`    ⚠️ Rate limited on tweet likers. Skipping remaining tweets.`, 'warn');
-                        break; // Stop processing more tweets if rate limited
-                    } else {
-                        log(`    ✗ Failed: ${likersRes.status} ${likersRes.statusText}`, 'error');
-                    }
-
-                    // Small delay to avoid rate limits
-                    await new Promise(r => setTimeout(r, 200));
-
-                } catch (e) {
-                    log(`    ✗ Error: ${e.message}`, 'error');
-                }
-            }
-
-            log(`Processed ${processedTweets}/${tweets.length} posts`, 'info');
-
-            const engagersList = Object.values(engagers)
-                .sort((a, b) => b.totalScore - a.totalScore)
-                .slice(0, 10);
-
-            log(`Found ${engagersList.length} top engagers`, 'success');
-
-            if (engagersList.length === 0) {
-                throw new Error('No engagement data found. This could be due to API restrictions or the user having no recent interactions.');
-            }
-
-            return {
-                profile: {
-                    name: userName,
-                    username: userHandle,
-                    avatar: userData.data.profile_image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=1d9bf0&color=fff&size=200`
-                },
-                stats: {
-                    postsAnalyzed: processedTweets,
-                    uniqueEngagers: Object.keys(engagers).length,
-                    totalInteractions: engagersList.reduce((s, e) => s + e.totalScore, 0)
-                },
-                engagers: engagersList
-            };
-        }
-
-        // ===== RENDER RESULTS =====
-        function renderResults(data) {
-            // Profile
-            document.getElementById('profileImg').src = data.profile.avatar;
-            document.getElementById('profileName').textContent = data.profile.name;
-            document.getElementById('profileHandle').textContent = `@${data.profile.username}`;
-
-            // Stats with animation
-            animateCounter(document.getElementById('totalPosts'), data.stats.postsAnalyzed);
-            animateCounter(document.getElementById('totalEngagers'), data.stats.uniqueEngagers);
-            animateCounter(document.getElementById('totalInteractions'), data.stats.totalInteractions);
-
-            // Podium (top 3)
-            const podium = document.getElementById('podiumSection');
-            const top3 = data.engagers.slice(0, 3);
-            const podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd
-
-            podium.innerHTML = podiumOrder.map((idx, pos) => {
-                const e = top3[idx];
-                if (!e) return '';
-                const heights = ['h-48', 'h-64', 'h-40'];
-                const delays = ['0.2s', '0s', '0.4s'];
-                const rankColors = ['from-slate-300 to-slate-400', 'from-amber-300 to-amber-500', 'from-amber-600 to-amber-700'];
-                const rankNum = idx + 1;
-
-                return `
-                    <div class="engager-card flex flex-col items-center" style="animation-delay: ${delays[pos]}">
-                        <div class="relative mb-3">
-                            <div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-br ${rankColors[pos]}">
-                                <img src="${e.avatar}" class="w-full h-full rounded-full object-cover bg-slate-900" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(e.name)}&background=334155&color=fff&size=200'">
-                            </div>
-                            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-slate-900 flex items-center justify-center text-xs font-bold ${rankNum===1?'text-amber-400':rankNum===2?'text-slate-300':'text-amber-600'}">
-                                ${rankNum}
-                            </div>
-                        </div>
-                        <p class="text-white font-semibold text-sm text-center max-w-[100px] truncate">${e.name}</p>
-                        <p class="text-slate-500 text-xs mb-2">@${e.username}</p>
-                        <div class="${heights[pos]} w-20 rounded-t-xl bg-gradient-to-t ${rankColors[pos]} opacity-80 flex items-end justify-center pb-3">
-                            <span class="text-slate-900 font-bold text-lg">${e.totalScore}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Leaderboard list (4-10)
-            const list = document.getElementById('leaderboardList');
-            const rest = data.engagers.slice(3);
-
-            list.innerHTML = rest.map((e, i) => {
-                const rank = i + 4;
-                const percentage = data.engagers[0].totalScore > 0 ? (e.totalScore / data.engagers[0].totalScore) * 100 : 0;
-
-                return `
-                    <div class="engager-card glass rounded-2xl p-4 flex items-center gap-4 hover-lift cursor-pointer" style="animation-delay: ${0.5 + i * 0.1}s">
-                        <div class="w-10 h-10 rounded-full rank-other flex items-center justify-center font-bold text-sm shrink-0">
-                            ${rank}
-                        </div>
-                        <img src="${e.avatar}" class="w-12 h-12 rounded-full object-cover bg-slate-900 shrink-0" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(e.name)}&background=334155&color=fff&size=200'">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <h4 class="text-white font-semibold truncate">${e.name}</h4>
-                                <span class="text-slate-500 text-sm truncate">@${e.username}</span>
-                            </div>
-                            <div class="flex items-center gap-4 text-xs text-slate-400">
-                                <span class="flex items-center gap-1"><i class="fas fa-heart text-pink-500"></i> ${e.likes}</span>
-                                <span class="flex items-center gap-1"><i class="fas fa-retweet text-green-500"></i> ${e.retweets}</span>
-                                <span class="flex items-center gap-1"><i class="fas fa-comment text-blue-500"></i> ${e.replies}</span>
-                            </div>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <div class="text-2xl font-bold text-white counter">${e.totalScore}</div>
-                            <div class="text-xs text-slate-500">points</div>
-                        </div>
-                        <div class="w-24 h-1.5 bg-slate-800 rounded-full overflow-hidden hidden sm:block">
-                            <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full stats-bar" style="width: ${percentage}%"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // ===== SHARE CARD =====
-        function generateShareCard() {
-            if (!currentData) return;
-
-            const modal = document.getElementById('shareModal');
-            document.getElementById('shareUsername').textContent = `@${currentData.profile.username}`;
-
-            const top3 = currentData.engagers.slice(0, 3);
-            const shareTop3 = document.getElementById('shareTop3');
-
-            shareTop3.innerHTML = top3.map((e, i) => `
-                <div class="flex items-center gap-4 p-3 rounded-xl ${i===0?'bg-amber-500/10 border border-amber-500/20':i===1?'bg-slate-500/10 border border-slate-500/20':'bg-amber-700/10 border border-amber-700/20'}">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${i===0?'bg-amber-500 text-black':i===1?'bg-slate-300 text-black':'bg-amber-700 text-white'}">
-                        ${i+1}
-                    </div>
-                    <img src="${e.avatar}" class="w-10 h-10 rounded-full object-cover" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(e.name)}&background=334155&color=fff&size=200'">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-white font-semibold text-sm truncate">${e.name}</p>
-                        <p class="text-slate-400 text-xs">@${e.username}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-white font-bold">${e.totalScore}</p>
-                        <p class="text-slate-500 text-xs">pts</p>
-                    </div>
-                </div>
-            `).join('');
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeShareModal() {
-            const modal = document.getElementById('shareModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        function downloadCard() {
-            alert('In a production app, this would use html2canvas to capture the card as an image. For now, take a screenshot!');
-        }
-
-        function postToX() {
-            if (!currentData) return;
-            const top3 = currentData.engagers.slice(0, 3);
-            const text = encodeURIComponent(
-                `My Top 3 Engagers on X! 🏆
-
-` +
-                `🥇 @${top3[0]?.username} — ${top3[0]?.totalScore} pts
-` +
-                `🥈 @${top3[1]?.username} — ${top3[1]?.totalScore} pts
-` +
-                `🥉 @${top3[2]?.username} — ${top3[2]?.totalScore} pts
-
-` +
-                `Who are your top fans?`
-            );
-            window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
-        }
-
-        // ===== RESET =====
-        function resetApp() {
-            document.getElementById('resultsSection').classList.add('hidden');
-            document.getElementById('inputSection').classList.remove('hidden');
-            document.getElementById('usernameInput').value = '';
-            document.getElementById('usernameInput').focus();
-            currentData = null;
-            currentUsername = '';
-            if (debugMode) clearLogs();
-        }
-
-        // ===== INIT =====
-        document.getElementById('usernameInput').focus();
-    </script>
+    <div class="panel-right">
+      <div class="stat-row"><span class="k">ID:</span><span class="v">14-488</span></div>
+      <div class="stat-row"><span class="k">SAT:</span><span class="v">07</span></div>
+      <div class="stat-row"><span class="k">BLK:</span><span class="v" id="stat-blocks">0</span></div>
+      <hr class="divider">
+      <div>
+        <div class="sec-label">// COLOR</div>
+        <div class="color-grid" id="color-grid"></div>
+      </div>
+      <hr class="divider">
+      <div>
+        <div class="sec-label">// SIZE</div>
+        <div class="size-grid" id="size-grid"></div>
+      </div>
+      <hr class="divider">
+      <div>
+        <div class="sec-label">// TOOLS</div>
+        <button class="tool-btn active" id="btn-paint" onclick="setTool('paint')">▣ PAINT</button>
+        <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">◻ ERASE</button>
+        <button class="tool-btn" id="btn-fill"  onclick="setTool('fill')">▦ FILL</button>
+      </div>
+      <hr class="divider">
+      <button class="tool-btn danger" onclick="clearAll()">✕ CLEAR</button>
+    </div>
+  </div>
+
+  <div class="hud-bottom">
+    <div><span class="status-dot"></span>ID: 14-488 | SAT: 07</div>
+    <div>FEED SAT // REL 0 | <span id="stat-grid-size">–</span></div>
+    <div class="linked-box">LINKED ■</div>
+  </div>
+
+</div>
+
+<script>
+const COLORS = [
+  { fill:'rgba(100,40,210,0.6)',   border:'#b088ff' },
+  { fill:'rgba(20,160,200,0.5)',   border:'#60e0ff' },
+  { fill:'rgba(200,40,120,0.5)',   border:'#ff80c8' },
+  { fill:'rgba(30,200,100,0.45)',  border:'#60ffb0' },
+  { fill:'rgba(220,120,20,0.5)',   border:'#ffb040' },
+  { fill:'rgba(200,190,255,0.35)', border:'#e8e0ff' },
+];
+const SIZES = [1,2,3,4,5,6];
+
+let currentColor = 0, currentSize = 1, currentTool = 'paint';
+let isDown = false, blocks = [];
+let CELL = 32, COLS = 1, ROWS = 1, CW = 1, CH = 1;
+let hoverGX = -1, hoverGY = -1;
+
+const wrap   = document.getElementById('canvas-wrap');
+const cbox   = document.getElementById('canvas-box');
+const canvas = document.getElementById('grid-canvas');
+const ctx    = canvas.getContext('2d');
+
+function drawRuler() {
+  const rc = document.getElementById('ruler-canvas');
+  const W  = rc.parentElement.clientWidth || 200;
+  rc.width = W; rc.height = 16;
+  const rx = rc.getContext('2d');
+  rx.clearRect(0,0,W,16);
+  const labels=[270,275,280,285,290,295,300,305,310];
+  const step = W/(labels.length-1);
+  labels.forEach((l,i)=>{
+    const x=i*step, major=l%10===0;
+    rx.strokeStyle='#8855dd'; rx.lineWidth=major?1.5:0.7;
+    rx.beginPath(); rx.moveTo(x,major?0:7); rx.lineTo(x,14); rx.stroke();
+    if(major){ rx.fillStyle='#b088ff'; rx.font='8px Share Tech Mono'; rx.fillText(l,x-7,10); }
+  });
+  for(let i=0;i<labels.length-1;i++){
+    for(let t=1;t<5;t++){
+      const x=i*step+t*(step/5);
+      rx.strokeStyle='#6644aa'; rx.lineWidth=0.5;
+      rx.beginPath(); rx.moveTo(x,10); rx.lineTo(x,14); rx.stroke();
+    }
+  }
+}
+
+function resize() {
+  drawRuler();
+  const wW = wrap.clientWidth, wH = wrap.clientHeight;
+  // Fit 16:9 inside wrap
+  let cw = wW, ch = Math.round(wW*9/16);
+  if(ch > wH){ ch = wH; cw = Math.round(wH*16/9); }
+  CW = cw; CH = ch;
+  canvas.width = cw; canvas.height = ch;
+  cbox.style.width = cw+'px'; cbox.style.height = ch+'px';
+  // Cell: target ~30px, at least 16
+  CELL = Math.max(16, Math.floor(Math.min(cw,ch)/18));
+  COLS = Math.floor(cw/CELL);
+  ROWS = Math.floor(ch/CELL);
+  document.getElementById('stat-grid-size').textContent = COLS+'×'+ROWS;
+  render();
+}
+window.addEventListener('resize', resize);
+
+// Build color swatches
+const cgrid = document.getElementById('color-grid');
+COLORS.forEach((c,i)=>{
+  const s=document.createElement('div');
+  s.className='swatch'+(i===0?' active':'');
+  s.style.background=c.fill;
+  s.style.boxShadow='0 0 4px '+c.border+'55';
+  s.addEventListener('pointerdown',e=>{
+    e.stopPropagation();
+    document.querySelectorAll('.swatch').forEach(el=>el.classList.remove('active'));
+    s.classList.add('active'); currentColor=i;
+  });
+  cgrid.appendChild(s);
+});
+
+// Build size buttons
+const sgrid = document.getElementById('size-grid');
+SIZES.forEach(sz=>{
+  const b=document.createElement('button');
+  b.className='size-btn'+(sz===1?' active':'');
+  b.textContent=sz+'×'+sz; b.dataset.size=sz;
+  b.addEventListener('pointerdown',e=>{
+    e.stopPropagation();
+    document.querySelectorAll('.size-btn').forEach(el=>el.classList.remove('active'));
+    b.classList.add('active'); currentSize=sz; render();
+  });
+  sgrid.appendChild(b);
+});
+
+function setTool(t){
+  currentTool=t;
+  ['paint','erase','fill'].forEach(n=>{
+    document.getElementById('btn-'+n).classList.toggle('active',n===t);
+  });
+}
+
+function ox(){ return Math.floor((CW-COLS*CELL)/2); }
+function oy(){ return Math.floor((CH-ROWS*CELL)/2); }
+
+function pxToGrid(px,py){
+  return { gx:Math.floor((px-ox())/CELL), gy:Math.floor((py-oy())/CELL) };
+}
+function gridToPx(gx,gy){
+  return { px:ox()+gx*CELL, py:oy()+gy*CELL };
+}
+function inB(gx,gy){ return gx>=0&&gy>=0&&gx<COLS&&gy<ROWS; }
+
+function placeBlock(gx,gy){
+  const sz=currentSize;
+  if(currentTool==='fill'){
+    blocks=[];
+    for(let r=0;r+sz<=ROWS;r+=sz)
+      for(let c=0;c+sz<=COLS;c+=sz)
+        blocks.push({gx:c,gy:r,w:sz,h:sz,ci:currentColor});
+  } else if(currentTool==='erase'){
+    const half=Math.floor(sz/2);
+    const ex=gx-half, ey=gy-half;
+    blocks=blocks.filter(b=>!(b.gx<ex+sz&&b.gx+b.w>ex&&b.gy<ey+sz&&b.gy+b.h>ey));
+  } else {
+    const half=Math.floor(sz/2);
+    const bx=Math.max(0,Math.min(COLS-sz,gx-half));
+    const by=Math.max(0,Math.min(ROWS-sz,gy-half));
+    blocks=blocks.filter(b=>!(b.gx<bx+sz&&b.gx+b.w>bx&&b.gy<by+sz&&b.gy+b.h>by));
+    blocks.push({gx:bx,gy:by,w:sz,h:sz,ci:currentColor});
+  }
+  document.getElementById('stat-blocks').textContent=blocks.length;
+  document.getElementById('stat-area').textContent=String(blocks.length).padStart(2,'0');
+  render();
+}
+
+function clearAll(){
+  blocks=[];
+  document.getElementById('stat-blocks').textContent=0;
+  document.getElementById('stat-area').textContent='00';
+  render();
+}
+
+function render(){
+  const gW=COLS*CELL, gH=ROWS*CELL;
+  const OX=ox(), OY=oy();
+  ctx.clearRect(0,0,CW,CH);
+  ctx.fillStyle='#0a0612'; ctx.fillRect(0,0,CW,CH);
+
+  // grid lines
+  ctx.strokeStyle='rgba(155,89,255,0.13)'; ctx.lineWidth=0.5;
+  for(let c=0;c<=COLS;c++){
+    const x=OX+c*CELL;
+    ctx.beginPath(); ctx.moveTo(x,OY); ctx.lineTo(x,OY+gH); ctx.stroke();
+  }
+  for(let r=0;r<=ROWS;r++){
+    const y=OY+r*CELL;
+    ctx.beginPath(); ctx.moveTo(OX,y); ctx.lineTo(OX+gW,y); ctx.stroke();
+  }
+  // scanlines
+  ctx.fillStyle='rgba(0,0,0,0.06)';
+  for(let y=OY;y<OY+gH;y+=4) ctx.fillRect(OX,y,gW,2);
+
+  // blocks
+  blocks.forEach(b=>{
+    const {px,py}=gridToPx(b.gx,b.gy);
+    const bw=b.w*CELL, bh=b.h*CELL;
+    const col=COLORS[b.ci];
+    ctx.fillStyle=col.fill; ctx.fillRect(px+1,py+1,bw-2,bh-2);
+    ctx.fillStyle='rgba(255,255,255,0.025)';
+    for(let sy=py+1;sy<py+bh-1;sy+=3) ctx.fillRect(px+1,sy,bw-2,1);
+    ctx.strokeStyle=col.border+'55'; ctx.lineWidth=3;
+    ctx.strokeRect(px+1,py+1,bw-2,bh-2);
+    ctx.strokeStyle=col.border; ctx.lineWidth=1;
+    ctx.strokeRect(px+1,py+1,bw-2,bh-2);
+    const cs=Math.max(1,Math.floor(CELL/14));
+    ctx.fillStyle=col.border;
+    [[px+2,py+2],[px+bw-3,py+2],[px+2,py+bh-3],[px+bw-3,py+bh-3]]
+      .forEach(([cx,cy])=>ctx.fillRect(cx,cy,cs,cs));
+  });
+
+  // hover
+  if(inB(hoverGX,hoverGY)){
+    const sz=currentSize;
+    const half=Math.floor(sz/2);
+    const bx=Math.max(0,Math.min(COLS-sz,hoverGX-half));
+    const by=Math.max(0,Math.min(ROWS-sz,hoverGY-half));
+    const {px,py}=gridToPx(bx,by);
+    const col=COLORS[currentColor];
+    if(currentTool==='paint'){
+      ctx.fillStyle=col.fill.replace(/[\d.]+\)$/,'0.18)');
+      ctx.fillRect(px+1,py+1,sz*CELL-2,sz*CELL-2);
+      ctx.strokeStyle=col.border; ctx.lineWidth=1;
+      ctx.setLineDash([3,3]); ctx.strokeRect(px+1,py+1,sz*CELL-2,sz*CELL-2); ctx.setLineDash([]);
+    } else if(currentTool==='erase'){
+      ctx.strokeStyle='rgba(255,80,120,0.65)'; ctx.lineWidth=1;
+      ctx.setLineDash([3,3]); ctx.strokeRect(px+1,py+1,sz*CELL-2,sz*CELL-2); ctx.setLineDash([]);
+    }
+  }
+
+  // border
+  ctx.strokeStyle='rgba(155,89,255,0.28)'; ctx.lineWidth=1;
+  ctx.strokeRect(OX,OY,gW,gH);
+}
+
+// pointer event helpers
+function getCanvasXY(e){
+  const rect=canvas.getBoundingClientRect();
+  const scX=CW/rect.width, scY=CH/rect.height;
+  const src=e.touches ? e.touches[0] : e;
+  return pxToGrid((src.clientX-rect.left)*scX,(src.clientY-rect.top)*scY);
+}
+
+canvas.addEventListener('pointerdown',e=>{
+  e.preventDefault(); isDown=true;
+  const {gx,gy}=getCanvasXY(e);
+  hoverGX=gx; hoverGY=gy; placeBlock(gx,gy);
+},{passive:false});
+
+canvas.addEventListener('pointermove',e=>{
+  e.preventDefault();
+  const {gx,gy}=getCanvasXY(e);
+  document.getElementById('stat-x').textContent=(1427+(gx/COLS)*100).toFixed(2)+'°';
+  document.getElementById('stat-y').textContent=(3071+(gy/ROWS)*100).toFixed(2)+'°';
+  if(gx!==hoverGX||gy!==hoverGY){ hoverGX=gx; hoverGY=gy; render(); }
+  if(isDown) placeBlock(gx,gy);
+},{passive:false});
+
+canvas.addEventListener('pointerup',   ()=>{ isDown=false; });
+canvas.addEventListener('pointerleave',()=>{ isDown=false; hoverGX=-1; hoverGY=-1; render(); });
+
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='p') setTool('paint');
+  if(k==='e') setTool('erase');
+  if(k==='f') setTool('fill');
+  if(k==='x') clearAll();
+  if(k>='1'&&k<='6'){
+    currentSize=parseInt(k);
+    document.querySelectorAll('.size-btn').forEach(b=>{
+      b.classList.toggle('active',parseInt(b.dataset.size)===currentSize);
+    });
+    render();
+  }
+});
+
+resize();
+</script>
 </body>
 </html>
